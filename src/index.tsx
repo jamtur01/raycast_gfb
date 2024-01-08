@@ -33,24 +33,6 @@ async function writeCache(data) {
   }
 }
 
-function getNextFourteenDays() {
-  const dates = [];
-  const currentDate = new Date();
-
-  for (let i = 1; i < 28; i++) {
-    const futureDate = new Date(currentDate);
-    futureDate.setDate(currentDate.getDate() + i);
-
-    const year = futureDate.getFullYear();
-    const month = (futureDate.getMonth() + 1).toString().padStart(2, "0");
-    const day = futureDate.getDate().toString().padStart(2, "0");
-
-    dates.push(`${year}${month}${day}`);
-  }
-
-  return dates;
-}
-
 async function fetchLeagueMatches() {
   const fotmob = new Fotmob();
   const interestedLeagues = {
