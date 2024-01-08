@@ -1,7 +1,7 @@
-import { List, ActionPanel, Action } from "@raycast/api";
+import { List, ActionPanel, Action, getPreferenceValues } from "@raycast/api";
 import { useState, useEffect } from "react";
 import Fotmob from "fotmob";
-import { MatchData, MatchItem, MatchStatus } from "./types";
+import { LeaguePair, MatchData, MatchItem, MatchStatus } from "./types";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -39,13 +39,30 @@ async function writeCache(data: MatchData) {
   }
 }
 
+function getInterestedLeagues(): LeaguePair {
+  const preferences = getPreferenceValues();
+  const pairsString = preferences.leagueTeamPairs;
+
+  if (pairsString) {
+    return pairsString.split(",").reduce((acc: LeaguePair, pair: string) => {
+      const [league, team] = pair.trim().split(":");
+      acc[league] = team;
+      return acc;
+    }, {});
+  } else {
+    // Default values if the preference is empty
+    return {
+      "9134": "189397",
+      "9907": "401657",
+      "9227": "258657",
+    };
+  }
+}
+
 async function fetchLeagueMatches() {
+  const interestedLeagues = getInterestedLeagues();
   const fotmob = new Fotmob();
-  const interestedLeagues = {
-    "9134": "189397",
-    "9907": "401657",
-    "9227": "258657",
-  };
+
   const allMatches = [];
   const currentDate = new Date();
   const startDate = new Date();

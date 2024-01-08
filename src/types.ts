@@ -50,3 +50,5 @@ export type MatchStatus = {
     started: boolean;
   };
 };
+
+export type LeaguePair = Record<string, string>;
