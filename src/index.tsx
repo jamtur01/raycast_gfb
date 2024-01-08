@@ -1,6 +1,7 @@
 import { List, ActionPanel, Action } from "@raycast/api";
 import { useState, useEffect } from "react";
 import Fotmob from "fotmob";
+import { MatchData, MatchItem, MatchStatus } from "./types";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -15,17 +16,22 @@ async function readCache() {
       try {
         return JSON.parse(data);
       } catch (parseError) {
+        // Check if the error is due to an empty file or unexpected end of input
+        if ((parseError as Error).message.includes("Unexpected end of JSON input")) {
+          // Handle the specific error silently or perform any cleanup if necessary
+          return null;
+        }
         console.error("Cache parsing error, treating as empty:", parseError);
-        return null; // Return null if parsing fails
+        return null;
       }
     }
   } catch (error) {
     console.error("Cache read error:", error);
   }
-  return null; // Return null if any other error occurs or if cache is outdated
+  return null;
 }
 
-async function writeCache(data) {
+async function writeCache(data: MatchData) {
   try {
     await fs.writeFile(CACHE_FILE, JSON.stringify(data), "utf8");
   } catch (error) {
@@ -50,30 +56,30 @@ async function fetchLeagueMatches() {
   for (const [leagueId, teamId] of Object.entries(interestedLeagues)) {
     try {
       console.log(`Fetching league data for ${leagueId}`);
-      const leagueData = await fotmob.getLeague(leagueId, "overview", "league", "America/New_York");
+      const leagueData = await fotmob.getLeague(Number(leagueId), "overview", "league", "America/New_York");
 
       if (leagueData && leagueData.overview && leagueData.overview.leagueOverviewMatches) {
         for (const match of leagueData.overview.leagueOverviewMatches) {
-          const matchDate = new Date(match.status.utcTime);
+          const matchDate = match.status?.utcTime ? new Date(match.status.utcTime) : new Date();
           if (
             matchDate >= startDate &&
             matchDate <= endDate &&
-            (match.home.id === teamId || match.away.id === teamId)
+            (match.home?.id === teamId || match.away?.id === teamId)
           ) {
-            const isMatchCompleted = match.status.finished;
+            const isMatchCompleted = match.status?.finished ?? false;
             let winningTeam = "";
             if (isMatchCompleted) {
-              if (match.home.score > match.away.score) {
-                winningTeam = match.home.name;
-              } else if (match.home.score < match.away.score) {
-                winningTeam = match.away.name;
+              if ((match.home?.score ?? 0) > (match.away?.score ?? 0)) {
+                winningTeam = match.home?.name ?? "";
+              } else if ((match.home?.score ?? 0) < (match.away?.score ?? 0)) {
+                winningTeam = match.away?.name ?? "";
               }
             }
 
             allMatches.push({
               date: matchDate.toISOString().substring(0, 10).replace(/-/g, ""),
               leagueId: leagueId,
-              leagueName: leagueData.details.name,
+              leagueName: leagueData.details?.name ?? "",
               match,
               matchLink: `https://www.fotmob.com${match.pageUrl}`,
               winner: winningTeam,
@@ -88,7 +94,7 @@ async function fetchLeagueMatches() {
   return allMatches;
 }
 
-function getMatchStatus(match) {
+function getMatchStatus(match: MatchStatus) {
   if (match.status.cancelled) {
     return "cancelled";
   } else if (match.status.finished) {
@@ -100,22 +106,32 @@ function getMatchStatus(match) {
   }
 }
 
-function formatMatchTime(utcTimeStr) {
+function formatMatchTime(utcTimeStr: string | number | Date) {
   const utcTime = new Date(utcTimeStr);
   const options = { hour: "numeric", minute: "2-digit", hour12: true };
 
   // Convert to Eastern Time (New York)
-  const easternTimeFormatter = new Intl.DateTimeFormat("en-US", { ...options, timeZone: "America/New_York" });
+  const easternTimeFormatter = new Intl.DateTimeFormat("en-US", {
+    ...options,
+    timeZone: "America/New_York",
+    hour: "numeric",
+    minute: "2-digit",
+  });
   const easternTime = easternTimeFormatter.format(utcTime);
 
   // Format UTC Time
-  const utcTimeFormatter = new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" });
+  const utcTimeFormatter = new Intl.DateTimeFormat("en-US", {
+    ...options,
+    timeZone: "UTC",
+    hour: "numeric",
+    minute: "numeric",
+  });
   const formattedUtcTime = utcTimeFormatter.format(utcTime);
 
   return `${easternTime} (${formattedUtcTime} UTC)`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string) {
   const year = dateStr.substring(0, 4);
   const month = dateStr.substring(4, 6);
   const day = dateStr.substring(6, 8);
@@ -123,7 +139,7 @@ function formatDate(dateStr) {
 }
 
 export default function MatchListCommand() {
-  const [groupedMatches, setMatches] = useState({});
+  const [groupedMatches, setMatches] = useState<Record<string, MatchItem[]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -138,7 +154,8 @@ export default function MatchListCommand() {
       }
 
       // Group matches by league
-      const groupedMatches = cachedData.reduce((acc, match) => {
+
+      const groupedMatches = cachedData.reduce((acc: Record<string, MatchItem[]>, match: MatchItem) => {
         (acc[match.leagueName] = acc[match.leagueName] || []).push(match);
         return acc;
       }, {});
@@ -153,7 +170,7 @@ export default function MatchListCommand() {
     <List isLoading={isLoading}>
       {Object.entries(groupedMatches).map(([leagueName, matches], leagueIndex) => (
         <List.Section key={leagueIndex} title={leagueName}>
-          {matches.map((match, matchIndex) => {
+          {matches.map((match: MatchItem, matchIndex: number) => {
             const status = getMatchStatus(match.match);
             let icon = "🔜";
             let title = `${match.match.home.name} vs ${match.match.away.name}`;
