@@ -1,6 +1,6 @@
 # Get FotMob Fixtures Changelog
 
-## [Initial version of the extension.] - 2024-01-07
+## [Initial version of the extension.] - 2024-01-09
 
 First release of the extension. It supports the following features:
 
