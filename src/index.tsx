@@ -145,15 +145,11 @@ export default function MatchListCommand() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      console.log("Starting data fetch");
       let cachedData = await readCache();
       if (!cachedData) {
-        console.log("No valid cache. Fetching new data.");
         cachedData = await fetchLeagueMatches();
         await writeCache(cachedData);
       }
-
-      // Group matches by league
 
       const groupedMatches = cachedData.reduce((acc: Record<string, MatchItem[]>, match: MatchItem) => {
         (acc[match.leagueName] = acc[match.leagueName] || []).push(match);
@@ -166,11 +162,19 @@ export default function MatchListCommand() {
     fetchData();
   }, []);
 
+  if (isLoading) {
+    return (
+      <List>
+        <List.EmptyView title="Loading matches..." description="Please wait while we fetch the latest matches." />
+      </List>
+    );
+  }
+
   return (
-    <List isLoading={isLoading}>
+    <List>
       {Object.entries(groupedMatches).map(([leagueName, matches], leagueIndex) => (
         <List.Section key={leagueIndex} title={leagueName}>
-          {matches.map((match: MatchItem, matchIndex: number) => {
+          {matches.map((match, matchIndex) => {
             const status = getMatchStatus(match.match);
             let icon = "🔜";
             let title = `${match.match.home.name} vs ${match.match.away.name}`;
