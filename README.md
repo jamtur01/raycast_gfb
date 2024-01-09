@@ -2,6 +2,8 @@
 
 This Raycast extension allows you to view upcoming and recent football matches from selected leagues and teams using the FotMob API.
 
+![screenshot](./metadata/screenshot.png)
+
 ## Features
 
 - View matches for the next 30 days and the past 7 days.
