@@ -1,47 +1,49 @@
 export type MatchItem = {
-  date: string;
+  date: Date;
   leagueId: string;
   leagueName: string;
-  match: {
-    id: string;
-    pageUrl: string;
-    opponent: {
-      id: string;
-      name: string;
-      score?: number;
-    };
-    home: {
-      id: string;
-      name: string;
-      score?: number;
-    };
-    away: {
-      id: string;
-      name: string;
-      score?: number;
-    };
-    displayTournament: boolean;
-    notStarted: boolean;
-    tournament: Record<string, unknown>;
-    status: {
-      utcTime: string;
-      started: boolean;
-      cancelled: boolean;
-      finished: boolean;
-      scoreStr?: string;
-      reason?: {
-        short: string;
-        shortKey: string;
-        long: string;
-        longKey: string;
-      };
-    };
-  };
+  match: Match;
   matchLink: string;
   winner: string;
 };
 
 export type MatchData = MatchItem[];
+
+export type Match = {
+  id: string;
+  pageUrl: string;
+  opponent: {
+    id: string;
+    name: string;
+    score?: number;
+  };
+  home: {
+    id: string;
+    name: string;
+    score?: number;
+  };
+  away: {
+    id: string;
+    name: string;
+    score?: number;
+  };
+  displayTournament: boolean;
+  notStarted: boolean;
+  tournament: Record<string, unknown>;
+  status: {
+    utcTime: Date;
+    started: boolean;
+    cancelled: boolean;
+    finished: boolean;
+    scoreStr?: string;
+    reason?: {
+      short: string;
+      shortKey: string;
+      long: string;
+      longKey: string;
+    };
+  };
+};
 
 export type MatchStatus = {
   status: {
