@@ -6,10 +6,10 @@ import { MatchData, MatchItem, Match, MatchStatus } from "./types";
 async function fetchLeagueMatches(): Promise<MatchData> {
   const fotmob = new Fotmob();
   const interestedLeagues = {
-    "9134": "189397",
-    "9907": "401657",
-    "9227": "258657",
-    "10082": "258657",
+    9134: 189397,
+    9907: 401657,
+    9227: 258657,
+    10082: 258657,
   };
   const allMatches: MatchData = [];
   const currentDate = new Date();
@@ -33,7 +33,7 @@ async function fetchLeagueMatches(): Promise<MatchData> {
           if (
             matchDate >= startDate &&
             matchDate <= endDate &&
-            (match.home?.id === teamId || match.away?.id === teamId)
+            (Number(match.home?.id) === teamId || Number(match.away?.id) === teamId)
           ) {
             const isMatchCompleted = match.status?.finished ?? false;
             let winningTeam = "";
