@@ -29,7 +29,7 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.64.5",
-    "fotmob": "^2.2.1"
+    "fotmob": "^2.3.0"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.6",
