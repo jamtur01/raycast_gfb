@@ -54,3 +54,16 @@ export type MatchStatus = {
 };
 
 export type LeaguePair = Record<string, string>;
+
+export interface Preferences {
+  team1: string;
+  league1: string;
+  team2: string;
+  league2: string;
+  team3: string;
+  league3: string;
+  team4: string;
+  league4: string;
+  team5: string;
+  league5: string;
+}

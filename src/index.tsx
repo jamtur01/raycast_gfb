@@ -1,16 +1,35 @@
-import { Cache, List, ActionPanel, Action } from "@raycast/api";
+import { Cache, getPreferenceValues, List, ActionPanel, Action } from "@raycast/api";
 import { useState, useEffect } from "react";
 import Fotmob from "fotmob";
-import { MatchData, MatchItem, Match, MatchStatus } from "./types";
+import { MatchData, MatchItem, Match, MatchStatus, Preferences } from "./types";
 
 async function fetchLeagueMatches(): Promise<MatchData> {
   const fotmob = new Fotmob();
+  const prefs = getPreferenceValues<Preferences>();
+
+  // Convert string preferences to numbers and construct the interestedLeagues object
   const interestedLeagues = {
-    9134: 189397,
-    9907: 401657,
-    9227: 258657,
-    10082: 258657,
+    [Number(prefs.league1)]: Number(prefs.team1),
+    [Number(prefs.league2)]: Number(prefs.team2),
+    [Number(prefs.league3)]: Number(prefs.team3),
+    [Number(prefs.league4)]: Number(prefs.team4),
+    [Number(prefs.league5)]: Number(prefs.team5),
   };
+
+  // Filter out empty or invalid entries
+  Object.keys(interestedLeagues).forEach((key) => {
+    const leagueId = Number(key);
+    const teamId = interestedLeagues[leagueId];
+
+    if (!teamId || isNaN(leagueId) || isNaN(teamId)) {
+      delete interestedLeagues[leagueId];
+    }
+  });
+
+  if (Object.keys(interestedLeagues).length === 0) {
+    return []; // Return an empty array if no leagues are specified
+  }
+
   const allMatches: MatchData = [];
   const currentDate = new Date();
   const startDate = new Date();
@@ -150,6 +169,17 @@ export default function MatchListCommand() {
     return (
       <List isLoading={true}>
         <List.EmptyView title="Loading matches..." description="Please wait while we fetch the latest matches." />
+      </List>
+    );
+  }
+
+  if (Object.keys(groupedMatches || {}).length === 0) {
+    return (
+      <List>
+        <List.EmptyView
+          title="No Matches Found"
+          description="No matches available for the selected leagues or teams."
+        />
       </List>
     );
   }
