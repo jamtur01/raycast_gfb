@@ -217,16 +217,24 @@ export default function MatchListCommand() {
 
               if (status === "finished") {
                 icon = "✅";
-                title += ` - ${match.home.score} - ${match.away.score}`;
+                title = `${match.home.name} vs ${match.away.name}`;
                 if (match.winner) {
-                  title += match.winner === match.home.name ? ` 🏆 ${match.home.name}` : ` 🏆 ${match.away.name}`;
+                  if (match.winner === match.home.name) {
+                    title = `${match.home.name} 🏆 vs ${match.away.name}`;
+                  } else {
+                    title = `${match.home.name} vs ${match.away.name} 🏆`;
+                  }
                 }
+                title += ` (${match.home.score} - ${match.away.score})`;
               } else if (status === "in-progress") {
                 icon = "⚽️";
+                title = `${match.home.name} vs ${match.away.name}`;
               } else if (status === "cancelled") {
                 icon = "❌";
+                title = `${match.home.name} vs ${match.away.name}`;
               } else if (status === "upcoming" && isToday(new Date(match.status.utcTime))) {
                 icon = "🕒";
+                title = `${match.home.name} vs ${match.away.name}`;
               }
 
               return (
