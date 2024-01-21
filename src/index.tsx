@@ -6,6 +6,9 @@ import { MatchData, MatchItem, Match, MatchStatus, Preferences } from "./types";
 async function fetchLeagueMatches(): Promise<MatchData> {
   const fotmob = new Fotmob();
   const prefs = getPreferenceValues<Preferences>();
+  const startDateOffset = Number(prefs.startDateOffset) || 7;
+  const endDateOffset = Number(prefs.endDateOffset) || 30;
+  const allMatches: MatchData = [];
 
   const interestedLeagues = {
     [Number(prefs.league1)]: Number(prefs.team1),
@@ -28,12 +31,11 @@ async function fetchLeagueMatches(): Promise<MatchData> {
     return [];
   }
 
-  const allMatches: MatchData = [];
   const currentDate = new Date();
   const startDate = new Date();
-  startDate.setDate(currentDate.getDate() - 7);
+  startDate.setDate(currentDate.getDate() - startDateOffset);
   const endDate = new Date();
-  endDate.setDate(currentDate.getDate() + 30);
+  endDate.setDate(currentDate.getDate() + endDateOffset);
 
   for (const [leagueId, teamId] of Object.entries(interestedLeagues)) {
     try {
