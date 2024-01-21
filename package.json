@@ -21,15 +21,6 @@
   "preferences": [
     {
       "type": "textfield",
-      "title": "Cache Expiry Time (in minutes)",
-      "description": "Cache Expiry Time",
-      "name": "cacheExpiryTime",
-      "placeholder": "Enter cache expiry time in minutes",
-      "default": "60",
-      "required": false
-    },
-    {
-      "type": "textfield",
       "title": "Start Date Offset (in days)",
       "description": "Number of days in the past to start searching for matches",
       "name": "startDateOffset",
@@ -129,7 +120,8 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.64.5",
-    "fotmob": "^2.3.0"
+    "@raycast/utils": "^1.10.1",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.6",

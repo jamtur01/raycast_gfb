@@ -1,8 +1,6 @@
-import { DO_NOT_USE_OR_YOU_WILL_BE_FIRED_EXPERIMENTAL_FORM_ACTIONS } from "react";
-
 export type MatchItem = {
   date: Date;
-  leagueId: DO_NOT_USE_OR_YOU_WILL_BE_FIRED_EXPERIMENTAL_FORM_ACTIONS;
+  leagueId: number;
   leagueName: string;
   away: {
     id: string;
@@ -34,10 +32,18 @@ export type MatchItem = {
 
 export type MatchData = MatchItem[];
 
+export type LeagueData = {
+  overview?: {
+    leagueOverviewMatches: MatchItem[];
+  };
+  details?: {
+    name: string;
+  };
+};
+
 export type LeaguePair = Record<string, string>;
 
-export interface Preferences {
-  cacheExpiryTime: string;
+export type Preferences = {
   startDateOffset: string;
   endDateOffset: string;
   team1: string;
@@ -50,4 +56,4 @@ export interface Preferences {
   league4: string;
   team5: string;
   league5: string;
-}
+};

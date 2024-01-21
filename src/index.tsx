@@ -1,7 +1,7 @@
-import { Cache, getPreferenceValues, List, ActionPanel, Action } from "@raycast/api";
-import { useState, useEffect } from "react";
-import Fotmob from "fotmob";
-import { MatchData, MatchItem, Preferences } from "./types";
+import { getPreferenceValues, List, ActionPanel, Action, showToast, Toast } from "@raycast/api";
+import { useCachedPromise } from "@raycast/utils";
+import fetch from "node-fetch";
+import { LeagueData, MatchData, MatchItem, Preferences } from "./types";
 
 async function fetchLeagueMatches(): Promise<MatchData> {
   const prefs = getPreferenceValues<Preferences>();
@@ -38,14 +38,19 @@ function getInterestedLeagues(prefs: Preferences): Record<number, number> {
 }
 
 async function getLeagueMatches(leagueId: number, teamId: number, startDate: Date, endDate: Date): Promise<MatchData> {
+  const url = `https://www.fotmob.com/api/leagues?id=${leagueId}&tab=overview&type=league&timeZone="America/New_York"`;
+
   try {
-    const fotmob = new Fotmob();
-    const leagueData = await fotmob.getLeague(leagueId, "overview", "league", "America/New_York");
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Error fetching league data: ${response.statusText}`);
+    }
+    const leagueData = (await response.json()) as LeagueData;
 
     if (leagueData?.overview?.leagueOverviewMatches) {
       return leagueData.overview.leagueOverviewMatches
-        .filter((match) => isValidMatch(match as MatchItem, teamId, startDate, endDate))
-        .map((match) => processMatchData(match as MatchItem, leagueId, leagueData.details?.name ?? ""));
+        .filter((match: MatchItem) => isValidMatch(match as MatchItem, teamId, startDate, endDate))
+        .map((match: MatchItem) => processMatchData(match as MatchItem, leagueId, leagueData.details?.name ?? ""));
     }
   } catch (error) {
     console.error(`Error fetching league data for ${leagueId}:`, error);
@@ -120,56 +125,25 @@ function isToday(date: Date) {
   return date.toDateString() === today.toDateString();
 }
 
-async function getCachedLeagueMatches(): Promise<MatchData> {
-  const cache = new Cache({ namespace: "MatchListCache", capacity: 10 * 1024 * 1024 });
-  const preferences = getPreferenceValues<Preferences>();
-  const cacheExpiryTimeInMinutes = Number(preferences.cacheExpiryTime) || 60;
-  const cacheExpiryTime = cacheExpiryTimeInMinutes * 60 * 1000;
-
-  const cachedData = cache.get("matches");
-  const cachedTimestamp = cache.get("matchesTimestamp");
-
-  const currentTime = Date.now();
-
-  if (cachedData && cachedTimestamp && currentTime - parseInt(cachedTimestamp, 10) < cacheExpiryTime) {
-    return JSON.parse(cachedData);
-  } else {
-    const matches = await fetchLeagueMatches();
-    cache.set("matches", JSON.stringify(matches));
-    cache.set("matchesTimestamp", currentTime.toString());
-    return matches;
-  }
-}
-
 export default function MatchListCommand() {
-  const [groupedMatches, setGroupedMatches] = useState<Record<string, MatchItem[]> | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    data: matches,
+    isLoading,
+    error,
+  } = useCachedPromise(fetchLeagueMatches, [], {
+    initialData: [],
+    keepPreviousData: true,
+  });
 
-  useEffect(() => {
-    async function fetchAndSetMatches() {
-      setIsLoading(true);
-      try {
-        const cachedMatches = await getCachedLeagueMatches();
-        const groupedMatches = groupMatchesByLeague(cachedMatches);
-        setGroupedMatches(groupedMatches);
-      } catch (error) {
-        console.error("Error fetching matches:", error);
-        setGroupedMatches({});
-      }
-      setIsLoading(false);
-    }
-    fetchAndSetMatches();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <List isLoading={true}>
-        <List.EmptyView title="Loading matches..." description="Please wait while we fetch the latest matches." />
-      </List>
-    );
+  if (error) {
+    showToast(Toast.Style.Failure, "Failed to fetch matches", error.message);
   }
 
-  if (!groupedMatches || Object.keys(groupedMatches).length === 0) {
+  if (isLoading && matches.length === 0) {
+    return <List isLoading={true} />;
+  }
+
+  if (matches.length === 0) {
     return (
       <List>
         <List.EmptyView
@@ -179,6 +153,8 @@ export default function MatchListCommand() {
       </List>
     );
   }
+
+  const groupedMatches = groupMatchesByLeague(matches);
 
   return (
     <List>
