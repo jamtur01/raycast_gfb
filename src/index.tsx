@@ -121,6 +121,15 @@ function formatDateTime(utcDateTime: Date) {
   return `${formattedDate} at ${easternTime} (${formattedUtcTime} UTC)`;
 }
 
+function isToday(date: Date) {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+}
+
 async function cachedFetchLeagueMatches(): Promise<MatchData> {
   const cache = new Cache({ namespace: "MatchListCache", capacity: 10 * 1024 * 1024 }); // 10 MB capacity
   const cacheExpiryTime = 60 * 60 * 1000; // 1 hour in milliseconds
@@ -207,6 +216,8 @@ export default function MatchListCommand() {
                 icon = "⚽️";
               } else if (status === "cancelled") {
                 icon = "❌";
+              } else if (status === "upcoming" && isToday(new Date(match.match.status.utcTime))) {
+                icon = "🕒";
               }
 
               return (
