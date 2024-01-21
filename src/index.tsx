@@ -4,12 +4,26 @@ import Fotmob from "fotmob";
 import { MatchData, MatchItem, Preferences } from "./types";
 
 async function fetchLeagueMatches(): Promise<MatchData> {
-  const fotmob = new Fotmob();
   const prefs = getPreferenceValues<Preferences>();
   const startDateOffset = Number(prefs.startDateOffset) || 7;
   const endDateOffset = Number(prefs.endDateOffset) || 30;
+  const currentDate = new Date();
+  const startDate = new Date(currentDate.setDate(currentDate.getDate() - startDateOffset));
+  const endDate = new Date(currentDate.setDate(currentDate.getDate() + endDateOffset));
+
+  const interestedLeagues = getInterestedLeagues(prefs);
   const allMatches: MatchData = [];
 
+  for (const [leagueId, teamId] of Object.entries(interestedLeagues)) {
+    console.log(`Fetching matches for league ${leagueId} and team ${teamId}`);
+    const matches = await getLeagueMatches(Number(leagueId), teamId, startDate, endDate);
+    allMatches.push(...matches);
+  }
+
+  return allMatches;
+}
+
+function getInterestedLeagues(prefs: Preferences): Record<number, number> {
   const interestedLeagues = {
     [Number(prefs.league1)]: Number(prefs.team1),
     [Number(prefs.league2)]: Number(prefs.team2),
@@ -21,78 +35,78 @@ async function fetchLeagueMatches(): Promise<MatchData> {
   Object.keys(interestedLeagues).forEach((key) => {
     const leagueId = Number(key);
     const teamId = interestedLeagues[leagueId];
-
     if (!leagueId || !teamId || isNaN(leagueId) || isNaN(teamId)) {
       delete interestedLeagues[leagueId];
     }
   });
 
-  if (Object.keys(interestedLeagues).length === 0) {
-    return [];
-  }
+  return interestedLeagues;
+}
 
-  const currentDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(currentDate.getDate() - startDateOffset);
-  const endDate = new Date();
-  endDate.setDate(currentDate.getDate() + endDateOffset);
-
-  for (const [leagueId, teamId] of Object.entries(interestedLeagues)) {
-    try {
-      console.log(`Fetching league data for ${leagueId}`);
-      const leagueData = await fotmob.getLeague(Number(leagueId), "overview", "league", "America/New_York");
-
-      if (leagueData && leagueData.overview && leagueData.overview.leagueOverviewMatches) {
-        for (const match of leagueData.overview.leagueOverviewMatches) {
-          if (!match.id) {
-            continue;
-          }
-
-          const matchDate = match.status?.utcTime ? new Date(match.status.utcTime) : new Date();
-          if (
-            matchDate >= startDate &&
-            matchDate <= endDate &&
-            (Number(match.home?.id) === teamId || Number(match.away?.id) === teamId)
-          ) {
-            const isMatchCompleted = match.status?.finished ?? false;
-            let winningTeam = "";
-            if (isMatchCompleted) {
-              if ((match.home?.score ?? 0) > (match.away?.score ?? 0)) {
-                winningTeam = match.home?.name ?? "";
-              } else if ((match.home?.score ?? 0) < (match.away?.score ?? 0)) {
-                winningTeam = match.away?.name ?? "";
-              }
-            }
-
-            allMatches.push({
-              date: matchDate,
-              leagueId: leagueId,
-              leagueName: leagueData.details?.name ?? "",
-              away: {
-                name: match.away?.name ?? "",
-                score: match.away?.score,
-              },
-              home: {
-                name: match.home?.name ?? "",
-                score: match.home?.score,
-              },
-              status: {
-                utcTime: match.status?.utcTime ?? new Date(),
-                started: match.status?.started ?? false,
-                cancelled: match.status?.cancelled ?? false,
-                finished: match.status?.finished ?? false,
-              },
-              matchLink: `https://www.fotmob.com${match.pageUrl}`,
-              winner: winningTeam,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching league data for ${leagueId}:`, error);
+async function getLeagueMatches(leagueId: number, teamId: number, startDate: Date, endDate: Date): Promise<MatchData> {
+  const fotmob = new Fotmob();
+  try {
+    const leagueData = await fotmob.getLeague(leagueId, "overview", "league", "America/New_York");
+    if (leagueData && leagueData.overview && leagueData.overview.leagueOverviewMatches) {
+      return leagueData.overview.leagueOverviewMatches
+        .filter((match) => isValidMatch(match as MatchItem, teamId, startDate, endDate))
+        .map((match) => processMatchData(match as MatchItem, leagueId, leagueData.details?.name ?? ""));
     }
+  } catch (error) {
+    console.error(`Error fetching league data for ${leagueId}:`, error);
   }
-  return allMatches;
+  return [];
+}
+
+function isValidMatch(match: MatchItem, teamId: number, startDate: Date, endDate: Date) {
+  const matchDate = match.status?.utcTime ? new Date(match.status.utcTime) : new Date();
+  return (
+    matchDate >= startDate &&
+    matchDate <= endDate &&
+    (Number(match.home?.id) === teamId || Number(match.away?.id) === teamId)
+  );
+}
+
+function processMatchData(match: MatchItem, leagueId: number, leagueName: string) {
+  const isMatchCompleted = match.status?.finished ?? false;
+  let winningTeam = "";
+  if (isMatchCompleted) {
+    winningTeam = determineWinningTeam(match);
+  }
+
+  return {
+    date: new Date(match.status?.utcTime ?? new Date()),
+    leagueId,
+    leagueName,
+    away: {
+      id: match.away?.id ?? "",
+      name: match.away?.name ?? "",
+      score: match.away?.score,
+    },
+    home: {
+      id: match.home?.id ?? "",
+      name: match.home?.name ?? "",
+      score: match.home?.score,
+    },
+    status: {
+      utcTime: match.status?.utcTime ?? new Date(),
+      started: match.status?.started ?? false,
+      cancelled: match.status?.cancelled ?? false,
+      finished: match.status?.finished ?? false,
+    },
+    pageUrl: match.pageUrl,
+    matchLink: `https://www.fotmob.com${match.pageUrl}`,
+    winner: winningTeam,
+  };
+}
+
+function determineWinningTeam(match: MatchItem) {
+  if ((match.home?.score ?? 0) > (match.away?.score ?? 0)) {
+    return match.home?.name ?? "";
+  } else if ((match.home?.score ?? 0) < (match.away?.score ?? 0)) {
+    return match.away?.name ?? "";
+  }
+  return "";
 }
 
 function getMatchStatus(status: MatchItem["status"]) {
