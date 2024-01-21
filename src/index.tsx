@@ -117,16 +117,19 @@ function isToday(date: Date) {
   return isSameYear && isSameMonth && isSameDay;
 }
 
-async function cachedFetchLeagueMatches(): Promise<MatchData> {
+async function getCachedLeagueMatches(): Promise<MatchData> {
   const cache = new Cache({ namespace: "MatchListCache", capacity: 10 * 1024 * 1024 });
-  const cacheExpiryTime = 60 * 60 * 1000; // 1 hour in milliseconds
-  const cachedMatches = cache.get("matches");
+  const preferences = getPreferenceValues<Preferences>();
+  const cacheExpiryTimeInMinutes = Number(preferences.cacheExpiryTime) || 60;
+  const cacheExpiryTime = cacheExpiryTimeInMinutes * 60 * 1000;
+
+  const cachedData = cache.get("matches");
   const cachedTimestamp = cache.get("matchesTimestamp");
 
   const currentTime = Date.now();
 
-  if (cachedMatches && cachedTimestamp && currentTime - parseInt(cachedTimestamp, 10) < cacheExpiryTime) {
-    return JSON.parse(cachedMatches);
+  if (cachedData && cachedTimestamp && currentTime - parseInt(cachedTimestamp, 10) < cacheExpiryTime) {
+    return JSON.parse(cachedData);
   } else {
     const matches = await fetchLeagueMatches();
     cache.set("matches", JSON.stringify(matches));
@@ -143,7 +146,7 @@ export default function MatchListCommand() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const matches = await cachedFetchLeagueMatches();
+        const matches = await getCachedLeagueMatches();
         const grouped = matches.reduce((acc: Record<string, MatchItem[]>, match: MatchItem) => {
           (acc[match.leagueName] = acc[match.leagueName] || []).push(match);
           return acc;
