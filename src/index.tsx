@@ -19,7 +19,7 @@ async function fetchLeagueMatches(): Promise<MatchData> {
     const leagueId = Number(key);
     const teamId = interestedLeagues[leagueId];
 
-    if (!teamId || isNaN(leagueId) || isNaN(teamId)) {
+    if (!leagueId || !teamId || isNaN(leagueId) || isNaN(teamId)) {
       delete interestedLeagues[leagueId];
     }
   });
