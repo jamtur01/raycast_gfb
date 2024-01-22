@@ -41,8 +41,6 @@ export type LeagueData = {
   };
 };
 
-export type LeaguePair = Record<string, string>;
-
 export type Preferences = {
   startDateOffset: string;
   endDateOffset: string;
