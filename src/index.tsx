@@ -126,7 +126,7 @@ function getMatchIcon(status: string): Icon | { source: string; tintColor: Color
     case "in-progress":
       return {
         source: Icon.PlayFilled,
-        tintColor: Color.Green,
+        tintColor: Color.Orange,
       };
     case "cancelled":
       return {
