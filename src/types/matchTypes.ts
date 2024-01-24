@@ -1,5 +1,6 @@
 export type MatchItem = {
   date: Date;
+  id: string;
   leagueId: number;
   leagueName: string;
   away: {
@@ -17,6 +18,7 @@ export type MatchItem = {
     started: boolean;
     cancelled: boolean;
     finished: boolean;
+    ongoing: boolean | null;
     scoreStr?: string;
     reason?: {
       short: string;
@@ -25,6 +27,7 @@ export type MatchItem = {
       longKey: string;
     };
   };
+  result: number | null;
   pageUrl: string;
   matchLink: string;
   winner: string;
@@ -41,17 +44,15 @@ export type LeagueData = {
   };
 };
 
-export type Preferences = {
-  startDateOffset: string;
-  endDateOffset: string;
-  team1: string;
-  league1: string;
-  team2: string;
-  league2: string;
-  team3: string;
-  league3: string;
-  team4: string;
-  league4: string;
-  team5: string;
-  league5: string;
+export type AllFixtureData = {
+  fixtures: MatchItem[];
+  nextMatch: MatchItem | null;
+};
+
+export type FixtureData = {
+  allFixtures: AllFixtureData;
+};
+
+export type TeamDetailData = {
+  fixtures: FixtureData;
 };

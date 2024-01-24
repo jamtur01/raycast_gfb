@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "gfb",
-  "title": "Get FotMob Fixtures",
+  "title": "Get Football Fixtures",
   "description": "Returns football results from FotMob's API for specific leagues and teams for 7 days in the past and 30 days in the future.",
   "icon": "extension_icon.png",
   "categories": [
@@ -39,27 +39,11 @@
     },
     {
       "type": "textfield",
-      "title": "League 1 ID",
-      "description": "League 1 ID",
-      "placeholder": "FotMob League ID",
-      "name": "league1",
-      "required": true
-    },
-    {
-      "type": "textfield",
       "title": "Team 1 ID",
       "description": "Team 1 ID",
       "placeholder": "FotMob Team ID",
       "name": "team1",
       "required": true
-    },
-    {
-      "type": "textfield",
-      "title": "League 2 ID",
-      "description": "League 2 ID",
-      "placeholder": "FotMob League ID",
-      "name": "league2",
-      "required": false
     },
     {
       "type": "textfield",
@@ -87,26 +71,10 @@
     },
     {
       "type": "textfield",
-      "title": "League 4 ID",
-      "description": "League 4 ID",
-      "placeholder": "FotMob League ID",
-      "name": "league4",
-      "required": false
-    },
-    {
-      "type": "textfield",
       "title": "Team 4 ID",
       "description": "Team 4 ID",
       "placeholder": "FotMob Team ID",
       "name": "team4",
-      "required": false
-    },
-    {
-      "type": "textfield",
-      "title": "League 5 ID",
-      "description": "League 5 ID",
-      "placeholder": "FotMob League ID",
-      "name": "league5",
       "required": false
     },
     {
