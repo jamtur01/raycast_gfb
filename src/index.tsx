@@ -4,23 +4,6 @@ import { fetchLeagueMatches } from "./fetchLeagueMatches";
 import { buildLeagueLogoUrl, buildTeamLogoUrl } from "./utils/url-builder";
 import { MatchItem } from "./types/matchTypes";
 
-function formatDateTime(utcDateTime: Date) {
-  const dateOptions: Intl.DateTimeFormatOptions = { year: "2-digit", month: "2-digit", day: "2-digit" };
-  const timeOptions: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: true };
-
-  const formattedDate = utcDateTime.toLocaleDateString("en-US", dateOptions);
-  const easternTime = new Intl.DateTimeFormat("en-US", { ...timeOptions, timeZone: "America/New_York" }).format(
-    utcDateTime,
-  );
-
-  return `${formattedDate} at ${easternTime}`;
-}
-
-function isToday(date: Date) {
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
-}
-
 export default function MatchListCommand() {
   const {
     data: matches,
@@ -50,11 +33,23 @@ export default function MatchListCommand() {
     );
   }
 
-  const groupedMatches = groupMatchesByTournament(matches as MatchItem[]);
+  const todayMatches = matches.filter((match) => getMatchStatus(match.status) === "today");
+  const otherMatches = matches.filter((match) => getMatchStatus(match.status) !== "today");
+
+  const groupedTodayMatches = groupMatchesByTournament(todayMatches as MatchItem[]);
+  const groupedOtherMatches = groupMatchesByTournament(otherMatches as MatchItem[]);
 
   return (
     <List>
-      {Object.entries(groupedMatches).map(([tournamentName, matches], tournamentIndex) => (
+      {Object.entries(groupedTodayMatches).map(([tournamentName, matches], tournamentIndex) => (
+        <List.Section key={tournamentIndex} title={`${tournamentName} - Today`}>
+          {matches.map((match: MatchItem, matchIndex: number) => (
+            <MatchItem key={matchIndex} match={match} />
+          ))}
+        </List.Section>
+      ))}
+
+      {Object.entries(groupedOtherMatches).map(([tournamentName, matches], tournamentIndex) => (
         <List.Section key={tournamentIndex} title={tournamentName}>
           {matches.map((match: MatchItem, matchIndex: number) => (
             <MatchItem key={matchIndex} match={match} />
@@ -74,6 +69,23 @@ function groupMatchesByTournament(matches: MatchItem[]) {
     acc[tournamentName].push(match);
     return acc;
   }, {});
+}
+
+function formatDateTime(utcDateTime: Date) {
+  const dateOptions: Intl.DateTimeFormatOptions = { year: "2-digit", month: "2-digit", day: "2-digit" };
+  const timeOptions: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: true };
+
+  const formattedDate = utcDateTime.toLocaleDateString("en-US", dateOptions);
+  const easternTime = new Intl.DateTimeFormat("en-US", { ...timeOptions, timeZone: "America/New_York" }).format(
+    utcDateTime,
+  );
+
+  return `${formattedDate} at ${easternTime}`;
+}
+
+function isToday(date: Date) {
+  const today = new Date();
+  return date.toDateString() === today.toDateString();
 }
 
 function getMatchStatus(status: MatchItem["status"]) {
@@ -136,7 +148,7 @@ function getMatchIcon(status: string): Icon | { source: string; tintColor: Color
     case "today":
       return {
         source: Icon.AlarmRinging,
-        tintColor: Color.Yellow,
+        tintColor: Color.Magenta,
       };
     default:
       return {
