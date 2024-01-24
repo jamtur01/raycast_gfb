@@ -1,8 +1,6 @@
 export type MatchItem = {
   date: Date;
   id: string;
-  leagueId: number;
-  leagueName: string;
   away: {
     id: string;
     name: string;

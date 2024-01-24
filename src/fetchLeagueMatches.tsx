@@ -12,10 +12,10 @@ export type Data = TeamDetailData & {
 };
 
 export async function fetchLeagueMatches(): Promise<MatchData> {
-  const prefs = getPreferenceValues<Preferences>();
-  const interestedTeams = getInterestedTeams(prefs);
-  const startDateOffset = Number(prefs.startDateOffset) || 7;
-  const endDateOffset = Number(prefs.endDateOffset) || 30;
+  const preferences = getPreferenceValues<Preferences>();
+  const interestedTeams = getInterestedTeams(preferences);
+  const startDateOffset = Number(preferences.startDateOffset) || 7;
+  const endDateOffset = Number(preferences.endDateOffset) || 30;
   const currentDate = new Date();
   const startDate = new Date();
   startDate.setDate(currentDate.getDate() - startDateOffset);
@@ -25,10 +25,10 @@ export async function fetchLeagueMatches(): Promise<MatchData> {
 
   for (const teamId of interestedTeams) {
     console.log(`Fetching matches for team ${teamId}`);
-    const result = await fetchTeamFixture(teamId);
+    const teamFixture = await fetchTeamFixture(teamId);
 
-    if (result.data && result.data.calculated) {
-      const { previousMatches, nextMatches } = result.data.calculated;
+    if (teamFixture.data && teamFixture.data.calculated) {
+      const { previousMatches, nextMatches } = teamFixture.data.calculated;
 
       const teamMatches: MatchItem[] = [];
       if (Array.isArray(previousMatches)) {
@@ -39,8 +39,8 @@ export async function fetchLeagueMatches(): Promise<MatchData> {
       }
 
       const processedMatches = teamMatches
-        .filter((match: MatchItem) => isValidMatch(match as MatchItem, startDate, endDate))
-        .map((match) => processMatchData(match));
+        .filter((match: MatchItem) => isValidMatch(match, startDate, endDate))
+        .map(processMatchData);
       allMatches.push(...processedMatches);
     }
   }
@@ -52,11 +52,11 @@ function isValidMatch(match: MatchItem, startDate: Date, endDate: Date) {
   return matchDate >= startDate && matchDate <= endDate;
 }
 
-function getInterestedTeams(prefs: Preferences): number[] {
+function getInterestedTeams(preferences: Preferences): number[] {
   const interestedTeams: number[] = [];
 
   for (let i = 1; i <= 5; i++) {
-    const teamId = Number(prefs[`team${i}` as keyof Preferences]);
+    const teamId = Number(preferences[`team${i}` as keyof Preferences]);
     if (teamId && !isNaN(teamId)) {
       interestedTeams.push(teamId);
     }
@@ -75,8 +75,6 @@ function processMatchData(match: MatchItem) {
     leagueId: match.tournament?.leagueId,
     name: match.tournament?.name ?? "",
   };
-  const leagueId = match.tournament?.leagueId;
-  const leagueName = match.tournament?.name;
   const away = {
     id: match.away?.id ?? "",
     name: match.away?.name ?? "",
@@ -101,8 +99,6 @@ function processMatchData(match: MatchItem) {
   return {
     date,
     id,
-    leagueId,
-    leagueName,
     away,
     home,
     status,
@@ -115,14 +111,16 @@ function processMatchData(match: MatchItem) {
 }
 
 function determineWinningTeam(match: MatchItem) {
-  const homeScore = match.home?.score ?? 0;
-  const awayScore = match.away?.score ?? 0;
+  const homeScore = match.home?.score || 0;
+  const awayScore = match.away?.score || 0;
 
   if (homeScore > awayScore) {
-    return match.home?.name ?? "";
-  } else if (homeScore < awayScore) {
-    return match.away?.name ?? "";
-  } else if (homeScore === awayScore) {
+    return match.home?.name || "";
+  }
+  if (homeScore < awayScore) {
+    return match.away?.name || "";
+  }
+  if (homeScore === awayScore) {
     return "draw";
   }
 
@@ -147,26 +145,22 @@ async function fetchTeamFixture(teamId: number) {
     };
   }
 
-  const fixtures = data.fixtures.allFixtures.fixtures;
-  const nextMatch = data.fixtures.allFixtures.nextMatch;
-  const ongoingMatch: MatchItem | null = nextMatch?.status.ongoing ? nextMatch : null;
+  const allFixtures = data.fixtures.allFixtures;
+  const fixtures = allFixtures.fixtures;
+  const nextMatch = allFixtures.nextMatch;
+  const ongoingMatch = nextMatch?.status.ongoing ? nextMatch : null;
   const nextMatchIndex = fixtures.findIndex((fixture) => fixture.id === nextMatch?.id);
   const previousMatches = fixtures.slice(0, nextMatchIndex);
-  const nextMatches = (function () {
-    if (ongoingMatch) {
-      return fixtures.slice(nextMatchIndex + 1, fixtures.length - 1);
-    }
-    return fixtures.slice(nextMatchIndex, fixtures.length - 1);
-  })();
+  const nextMatches = ongoingMatch ? fixtures.slice(nextMatchIndex + 1) : fixtures.slice(nextMatchIndex);
 
   return {
     data: {
       ...data,
       calculated: {
         upcomingMatch: nextMatch,
-        ongoingMatch: ongoingMatch,
-        previousMatches: previousMatches,
-        nextMatches: nextMatches,
+        ongoingMatch,
+        previousMatches,
+        nextMatches,
       },
     },
     error,

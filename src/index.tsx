@@ -50,13 +50,13 @@ export default function MatchListCommand() {
     );
   }
 
-  const groupedMatches = groupMatchesByLeague(matches);
+  const groupedMatches = groupMatchesByTournament(matches as MatchItem[]);
 
   return (
     <List>
-      {Object.entries(groupedMatches).map(([leagueName, matches], leagueIndex) => (
-        <List.Section key={leagueIndex} title={leagueName}>
-          {matches.map((match, matchIndex) => (
+      {Object.entries(groupedMatches).map(([tournamentName, matches], tournamentIndex) => (
+        <List.Section key={tournamentIndex} title={tournamentName}>
+          {matches.map((match: MatchItem, matchIndex: number) => (
             <MatchItem key={matchIndex} match={match} />
           ))}
         </List.Section>
@@ -65,9 +65,13 @@ export default function MatchListCommand() {
   );
 }
 
-function groupMatchesByLeague(matches: MatchItem[]): Record<string, MatchItem[]> {
+function groupMatchesByTournament(matches: MatchItem[]) {
   return matches.reduce((acc: Record<string, MatchItem[]>, match: MatchItem) => {
-    (acc[match.leagueName] = acc[match.leagueName] || []).push(match);
+    const tournamentName = match.tournament.name;
+    if (!acc[tournamentName]) {
+      acc[tournamentName] = [];
+    }
+    acc[tournamentName].push(match);
     return acc;
   }, {});
 }
@@ -87,6 +91,8 @@ function MatchItem({ match }: { match: MatchItem }) {
   const icon = getMatchIcon(status);
   const title = getMatchTitle(match, status);
   const actions = getMatchActions(match);
+  const tournamentName = match.tournament.name;
+
   return (
     <List.Item
       icon={icon}
@@ -94,9 +100,9 @@ function MatchItem({ match }: { match: MatchItem }) {
       subtitle={formatDateTime(new Date(match.status.utcTime))}
       accessories={[
         {
-          icon: buildLeagueLogoUrl(match.leagueId, "dark"),
-          tag: match.leagueName,
-          tooltip: match.leagueName,
+          icon: buildLeagueLogoUrl(match.tournament.leagueId, "dark"),
+          tag: tournamentName,
+          tooltip: tournamentName,
         },
         {
           icon: buildTeamLogoUrl(match.home.id),
