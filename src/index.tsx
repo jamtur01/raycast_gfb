@@ -1,9 +1,6 @@
 import { List, ActionPanel, Action, showToast, Toast, Color, Icon } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { fetchLeagueMatches } from "./fetchLeagueMatches";
-//import { fetchTeamDetail } from "./fetchTeamDetail";
-//import { fetchTeamFixture } from "./fetchFixtures";
-import { fetchSearch } from "./fetchSearch";
 import { buildLeagueLogoUrl, buildTeamLogoUrl } from "./utils/url-builder";
 import { MatchItem } from "./types/matchTypes";
 
@@ -33,9 +30,6 @@ export default function MatchListCommand() {
     initialData: [],
     keepPreviousData: true,
   });
-
-  const td = fetchSearch("Arsenal");
-  console.log(td.result);
 
   if (error) {
     showToast(Toast.Style.Failure, "Failed to fetch matches", error.message);

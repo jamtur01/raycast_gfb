@@ -1,26 +1,55 @@
 import { getPreferenceValues } from "@raycast/api";
-import fetch from "node-fetch";
-import { LeagueData, MatchData, MatchItem } from "./types/matchTypes";
+import { MatchData, MatchItem, TeamDetailData } from "./types/matchTypes";
 import { Preferences } from "./types/preferencesTypes";
+import { fetchTeamDetail } from "./fetchTeamDetail";
+
+export type Data = TeamDetailData & {
+  calculated: {
+    upcomingMatch: MatchItem | null;
+    lastMatches: MatchItem[];
+    nextMatches: MatchItem[];
+  };
+};
 
 export async function fetchLeagueMatches(): Promise<MatchData> {
   const prefs = getPreferenceValues<Preferences>();
+  const interestedTeams = getInterestedTeams(prefs);
   const startDateOffset = Number(prefs.startDateOffset) || 7;
   const endDateOffset = Number(prefs.endDateOffset) || 30;
   const currentDate = new Date();
-  const startDate = new Date(currentDate.setDate(currentDate.getDate() - startDateOffset));
-  const endDate = new Date(currentDate.setDate(currentDate.getDate() + endDateOffset));
-
-  const interestedLeagues = getInterestedTeams(prefs);
+  const startDate = new Date();
+  startDate.setDate(currentDate.getDate() - startDateOffset);
+  const endDate = new Date();
+  endDate.setDate(currentDate.getDate() + endDateOffset);
   const allMatches: MatchData = [];
 
-  for (const [leagueId, teamId] of Object.entries(interestedLeagues)) {
-    console.log(`Fetching matches for league ${leagueId} and team ${teamId}`);
-    const matches = await getLeagueMatches(Number(leagueId), teamId, startDate, endDate);
-    allMatches.push(...matches);
-  }
+  for (const teamId of interestedTeams) {
+    console.log(`Fetching matches for team ${teamId}`);
+    const result = await fetchTeamFixture(teamId);
 
+    if (result.data && result.data.calculated) {
+      const { previousMatches, nextMatches } = result.data.calculated;
+
+      const teamMatches: MatchItem[] = [];
+      if (Array.isArray(previousMatches)) {
+        teamMatches.push(...previousMatches);
+      }
+      if (Array.isArray(nextMatches)) {
+        teamMatches.push(...nextMatches);
+      }
+
+      const processedMatches = teamMatches
+        .filter((match: MatchItem) => isValidMatch(match as MatchItem, startDate, endDate))
+        .map((match) => processMatchData(match));
+      allMatches.push(...processedMatches);
+    }
+  }
   return allMatches;
+}
+
+function isValidMatch(match: MatchItem, startDate: Date, endDate: Date) {
+  const matchDate = new Date(match.status?.utcTime || Date.now());
+  return matchDate >= startDate && matchDate <= endDate;
 }
 
 function getInterestedTeams(prefs: Preferences): number[] {
@@ -36,42 +65,18 @@ function getInterestedTeams(prefs: Preferences): number[] {
   return interestedTeams;
 }
 
-async function getLeagueMatches(leagueId: number, teamId: number, startDate: Date, endDate: Date): Promise<MatchData> {
-  const url = `https://www.fotmob.com/api/leagues?id=${leagueId}&tab=overview&type=league&timeZone="America/New_York"`;
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Error fetching league data: ${response.statusText}`);
-    }
-    const leagueData = (await response.json()) as LeagueData;
-
-    if (leagueData?.overview?.leagueOverviewMatches) {
-      return leagueData.overview.leagueOverviewMatches
-        .filter((match: MatchItem) => isValidMatch(match as MatchItem, teamId, startDate, endDate))
-        .map((match: MatchItem) => processMatchData(match as MatchItem, leagueId, leagueData.details?.name ?? ""));
-    }
-  } catch (error) {
-    console.error(`Error fetching league data for ${leagueId}:`, error);
-  }
-  return [];
-}
-
-function isValidMatch(match: MatchItem, teamId: number, startDate: Date, endDate: Date) {
-  const matchDate = new Date(match.status?.utcTime || Date.now());
-  return (
-    matchDate >= startDate &&
-    matchDate <= endDate &&
-    (Number(match.home?.id) === teamId || Number(match.away?.id) === teamId)
-  );
-}
-
-function processMatchData(match: MatchItem, leagueId: number, leagueName: string) {
+function processMatchData(match: MatchItem) {
   const isMatchCompleted = match.status?.finished ?? false;
   const winningTeam = isMatchCompleted ? determineWinningTeam(match) : "";
 
   const date = new Date(match.status?.utcTime ?? new Date());
   const id = match.id;
+  const tournament = {
+    leagueId: match.tournament?.leagueId,
+    name: match.tournament?.name ?? "",
+  };
+  const leagueId = match.tournament?.leagueId;
+  const leagueName = match.tournament?.name;
   const away = {
     id: match.away?.id ?? "",
     name: match.away?.name ?? "",
@@ -93,7 +98,20 @@ function processMatchData(match: MatchItem, leagueId: number, leagueName: string
   const pageUrl = match.pageUrl;
   const matchLink = `https://www.fotmob.com${pageUrl}`;
 
-  return { date, id, leagueId, leagueName, away, home, status, result, pageUrl, matchLink, winner: winningTeam };
+  return {
+    date,
+    id,
+    leagueId,
+    leagueName,
+    away,
+    home,
+    status,
+    result,
+    pageUrl,
+    matchLink,
+    tournament,
+    winner: winningTeam,
+  };
 }
 
 function determineWinningTeam(match: MatchItem) {
@@ -109,4 +127,49 @@ function determineWinningTeam(match: MatchItem) {
   }
 
   return "";
+}
+
+async function fetchTeamFixture(teamId: number) {
+  const { data, error, isLoading } = await fetchTeamDetail(teamId);
+
+  if (data == null || error != null || isLoading) {
+    return {
+      data: {
+        calculated: {
+          upcomingMatch: null,
+          ongoingMatch: null,
+          previousMatches: [],
+          nextMatches: [],
+        },
+      },
+      error,
+      isLoading,
+    };
+  }
+
+  const fixtures = data.fixtures.allFixtures.fixtures;
+  const nextMatch = data.fixtures.allFixtures.nextMatch;
+  const ongoingMatch: MatchItem | null = nextMatch?.status.ongoing ? nextMatch : null;
+  const nextMatchIndex = fixtures.findIndex((fixture) => fixture.id === nextMatch?.id);
+  const previousMatches = fixtures.slice(0, nextMatchIndex);
+  const nextMatches = (function () {
+    if (ongoingMatch) {
+      return fixtures.slice(nextMatchIndex + 1, fixtures.length - 1);
+    }
+    return fixtures.slice(nextMatchIndex, fixtures.length - 1);
+  })();
+
+  return {
+    data: {
+      ...data,
+      calculated: {
+        upcomingMatch: nextMatch,
+        ongoingMatch: ongoingMatch,
+        previousMatches: previousMatches,
+        nextMatches: nextMatches,
+      },
+    },
+    error,
+    isLoading,
+  };
 }

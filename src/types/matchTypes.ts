@@ -13,6 +13,10 @@ export type MatchItem = {
     name: string;
     score?: number;
   };
+  tournament: {
+    leagueId: number;
+    name: string;
+  };
   status: {
     utcTime: Date;
     started: boolean;
@@ -34,15 +38,6 @@ export type MatchItem = {
 };
 
 export type MatchData = MatchItem[];
-
-export type LeagueData = {
-  overview?: {
-    leagueOverviewMatches: MatchItem[];
-  };
-  details?: {
-    name: string;
-  };
-};
 
 export type AllFixtureData = {
   fixtures: MatchItem[];
