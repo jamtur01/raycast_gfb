@@ -3,6 +3,7 @@ import { useCachedPromise } from "@raycast/utils";
 import { fetchLeagueMatches } from "./fetchLeagueMatches";
 import { buildLeagueLogoUrl, buildTeamLogoUrl } from "./utils/url-builder";
 import { MatchItem } from "./types/matchTypes";
+//import { getMatches } from "./getTV";
 
 export default function MatchListCommand() {
   const {
@@ -33,6 +34,8 @@ export default function MatchListCommand() {
     );
   }
 
+  //console.log(tv);
+
   const todayMatches = matches.filter((match) => getMatchStatus(match.status) === "today");
   const otherMatches = matches.filter((match) => getMatchStatus(match.status) !== "today");
 
@@ -61,12 +64,31 @@ export default function MatchListCommand() {
 }
 
 function groupMatchesByTournament(matches: MatchItem[]) {
+  const now = new Date();
+
   return matches.reduce((acc: Record<string, MatchItem[]>, match: MatchItem) => {
     const tournamentName = match.tournament.name;
     if (!acc[tournamentName]) {
       acc[tournamentName] = [];
     }
     acc[tournamentName].push(match);
+
+    acc[tournamentName].sort((a, b) => {
+      const dateA = new Date(a.status.utcTime);
+      const dateB = new Date(b.status.utcTime);
+
+      const isPastA = dateA < now;
+      const isPastB = dateB < now;
+
+      if (isPastA && isPastB) {
+        return dateB.getTime() - dateA.getTime();
+      } else if (!isPastA && !isPastB) {
+        return dateA.getTime() - dateB.getTime();
+      } else {
+        return isPastA ? 1 : -1;
+      }
+    });
+
     return acc;
   }, {});
 }
@@ -104,7 +126,7 @@ function MatchItem({ match }: { match: MatchItem }) {
   const title = getMatchTitle(match, status);
   const actions = getMatchActions(match);
   const tournamentName = match.tournament.name;
-
+  //const matchTV = getMatches(match, tournamentName);
   return (
     <List.Item
       icon={icon}
