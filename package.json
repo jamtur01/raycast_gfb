@@ -84,12 +84,28 @@
       "placeholder": "FotMob Team ID",
       "name": "team5",
       "required": false
+    },
+    { "type": "textfield",
+      "title": "Ntfy Topic",
+      "description": "Ntfy Topic",
+      "placeholder": "Ntfy Topic",
+      "name": "ntfyTopic",
+      "required": false
+    },
+    {
+      "type": "password",
+      "title": "Ntfy Token",
+      "description": "Ntfy Token",
+      "placeholder": "Ntfy Token",
+      "name": "ntfyToken",
+      "required": false
     }
   ],
   "dependencies": {
     "@raycast/api": "^1.64.5",
     "@raycast/utils": "^1.10.1",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "run-applescript": "^7.0.0"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.6",

@@ -28,7 +28,7 @@ export async function fetchLeagueMatches(): Promise<MatchData> {
     const teamFixture = await fetchTeamFixture(teamId);
 
     if (teamFixture.data && teamFixture.data.calculated) {
-      const { previousMatches, nextMatches } = teamFixture.data.calculated;
+      const { previousMatches, nextMatches, ongoingMatch } = teamFixture.data.calculated;
 
       const teamMatches: MatchItem[] = [];
       if (Array.isArray(previousMatches)) {
@@ -36,6 +36,9 @@ export async function fetchLeagueMatches(): Promise<MatchData> {
       }
       if (Array.isArray(nextMatches)) {
         teamMatches.push(...nextMatches);
+      }
+      if (ongoingMatch) {
+        teamMatches.push(ongoingMatch);
       }
 
       const processedMatches = teamMatches

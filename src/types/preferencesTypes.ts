@@ -6,4 +6,6 @@ export type Preferences = {
   team3: string;
   team4: string;
   team5: string;
+  ntfyTopic: string;
+  ntfyToken: string;
 };

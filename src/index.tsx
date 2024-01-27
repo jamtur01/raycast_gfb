@@ -1,7 +1,9 @@
 import { List, ActionPanel, Action, showToast, Toast, Color, Icon } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { fetchLeagueMatches } from "./fetchLeagueMatches";
-import { buildLeagueLogoUrl, buildTeamLogoUrl } from "./utils/url-builder";
+import { buildLeagueLogoUrl, buildTeamLogoUrl } from "./utils/urlBuilder";
+import { sendNotification } from "./utils/sendNotifications";
+import { formatDateTime } from "./utils/formatDateTime";
 import { MatchItem } from "./types/matchTypes";
 
 export default function MatchListCommand() {
@@ -33,11 +35,24 @@ export default function MatchListCommand() {
     );
   }
 
-  const todayMatches = matches.filter((match) => getMatchStatus(match.status) === "today");
-  const otherMatches = matches.filter((match) => getMatchStatus(match.status) !== "today");
+  const todayMatches = matches.filter((match) => {
+    const status = getMatchStatus(match.status);
+    return status === "today" || status === "in-progress";
+  });
+
+  const otherMatches = matches.filter((match) => {
+    const status = getMatchStatus(match.status);
+    return status !== "today" && status !== "in-progress";
+  });
 
   const groupedTodayMatches = groupMatchesByTournament(todayMatches as MatchItem[]);
   const groupedOtherMatches = groupMatchesByTournament(otherMatches as MatchItem[]);
+
+  Object.entries(groupedTodayMatches).map(([tournamentName, matches]) => {
+    matches.map((match: MatchItem) => {
+      sendNotification(tournamentName, match);
+    });
+  });
 
   return (
     <List>
@@ -88,18 +103,6 @@ function groupMatchesByTournament(matches: MatchItem[]) {
 
     return acc;
   }, {});
-}
-
-function formatDateTime(utcDateTime: Date) {
-  const dateOptions: Intl.DateTimeFormatOptions = { year: "2-digit", month: "2-digit", day: "2-digit" };
-  const timeOptions: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: true };
-
-  const formattedDate = utcDateTime.toLocaleDateString("en-US", dateOptions);
-  const easternTime = new Intl.DateTimeFormat("en-US", { ...timeOptions, timeZone: "America/New_York" }).format(
-    utcDateTime,
-  );
-
-  return `${formattedDate} at ${easternTime}`;
 }
 
 function isToday(date: Date) {
