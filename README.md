@@ -34,6 +34,7 @@ For any issues or feature requests, please submit an issue on the project's GitH
 
 - [FotMob](https://www.fotmob.com/) for providing the API used by this extension.
 - [Raycast](https://raycast.com/) for creating the platform this extension runs on.
+- [RayFotMob](https://github.com/sonla58/RayFotmob/) for some useful learnings.
 
 ## License
 
