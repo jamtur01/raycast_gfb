@@ -55,14 +55,6 @@
     },
     {
       "type": "textfield",
-      "title": "League 3 ID",
-      "description": "League 3 ID",
-      "placeholder": "FotMob League ID",
-      "name": "league3",
-      "required": false
-    },
-    {
-      "type": "textfield",
       "title": "Team 3 ID",
       "description": "Team 2 ID",
       "placeholder": "FotMob Team ID",
