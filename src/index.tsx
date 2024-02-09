@@ -48,6 +48,12 @@ export default function MatchListCommand() {
   const groupedTodayMatches = groupMatchesByTournament(todayMatches as MatchItem[]);
   const groupedOtherMatches = groupMatchesByTournament(otherMatches as MatchItem[]);
 
+  const sortedOtherMatches = Object.entries(groupedOtherMatches).sort((a, b) => {
+    const tournamentNameA = a[0].toLowerCase();
+    const tournamentNameB = b[0].toLowerCase();
+    return tournamentNameA.localeCompare(tournamentNameB);
+  });
+
   Object.entries(groupedTodayMatches).map(([tournamentName, matches]) => {
     matches.map((match: MatchItem) => {
       sendNotification(tournamentName, match);
@@ -64,7 +70,7 @@ export default function MatchListCommand() {
         </List.Section>
       ))}
 
-      {Object.entries(groupedOtherMatches).map(([tournamentName, matches], tournamentIndex) => (
+      {sortedOtherMatches.map(([tournamentName, matches], tournamentIndex) => (
         <List.Section key={tournamentIndex} title={tournamentName}>
           {matches.map((match: MatchItem, matchIndex: number) => (
             <MatchItem key={matchIndex} match={match} />
